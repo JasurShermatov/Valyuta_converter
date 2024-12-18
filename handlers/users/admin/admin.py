@@ -3,13 +3,12 @@ import os
 from datetime import datetime
 from aiogram import Router, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import Message, FSInputFile
-from data.config import load_config
 from filters.admin import AdminFilter
 from keyboards.default.admin_kb import admin_keyboard
 from utils.database.db import DataBase
 import pandas as pd
-import openpyxl
 from openpyxl.styles import Font, PatternFill
 
 router = Router()
@@ -60,6 +59,8 @@ async def show_statistics(message: Message):
     except Exception as e:
         print(f"Error showing statistics: {e}")
         await message.answer("❌ Statistikani olishda xatolik yuz berdi")
+
+
 
 
 @router.message(AdminFilter(), F.text == "📥 Users Excel")
@@ -147,3 +148,13 @@ async def get_users_excel(message: Message):
     except Exception as e:
         print(f"Error creating Excel file: {e}")
         await message.answer("❌ Excel fayl yaratishda xatolik yuz berdi")
+
+
+
+@router.message(AdminFilter(), F.text == "⬅️ Orqaga")
+async def back_handler(message: Message, state: FSMContext):
+    # FSM holatini tozalash
+    await state.clear()
+
+    # Admin paneldan chiqishni bildirish
+    await message.answer("Admin paneldan chiqdingiz. 🔒")

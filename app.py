@@ -14,9 +14,12 @@ from handlers.users.admin.admin_spams import router as admin_spams_router
 from handlers.users.main.converter import router as converter_router
 
 # API va utillar
-from utils.currency_api import currency_api, currency_update_task, daily_notification_task
+from utils.currency_api import CurrencyApi, currency_update_task, daily_notification_task
 from data.config import load_config
 from utils.database.db_init import init_db
+
+# Currency API instance
+currency_api = CurrencyApi()
 
 # Logger sozlamalari
 logger = logging.getLogger(__name__)

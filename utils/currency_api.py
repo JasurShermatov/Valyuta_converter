@@ -1,4 +1,3 @@
-# utils/currency_api.py
 import aiohttp
 import asyncio
 from datetime import datetime, time, timedelta
@@ -10,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class CurrencyApi:
-    """NBU.uz API orqali valyuta kurslarini olish"""
+    """CBU.uz API orqali valyuta kurslarini olish"""
 
     def __init__(self):
         self.rates: Dict[str, float] = {}
@@ -18,7 +17,7 @@ class CurrencyApi:
         self.update_interval: int = 300  # 5 daqiqa
         self.db = DataBase()
         self._session: Optional[aiohttp.ClientSession] = None
-        self._url = "https://nbu.uz/exchange-rates/json/"
+        self._url = "https://cbu.uz/uz/arkhiv-kursov-valyut/json/"  # CBU.uz API manzili
         self._headers = {
             "Accept": "application/json",
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -36,12 +35,12 @@ class CurrencyApi:
             await self._session.close()
 
     async def get_rates(self) -> Optional[Dict[str, float]]:
-        """NBU.uz dan valyuta kurslarini olish"""
+        """CBU.uz dan valyuta kurslarini olish"""
         try:
             session = await self._get_session()
             async with session.get(self._url) as response:
                 if response.status != 200:
-                    logger.error(f"NBU.uz API xatosi: {response.status}")
+                    logger.error(f"CBU.uz API xatosi: {response.status}")
                     return None
 
                 data = await response.json()
@@ -49,12 +48,9 @@ class CurrencyApi:
 
                 for item in data:
                     try:
-                        code = item["code"]
+                        code = item["Ccy"]  # CBU.uz API da "Ccy" kalit so'zi ishlatiladi
                         if code in ["USD", "EUR", "GBP", "RUB"]:
-                            # RUB ni RUR ga o'zgartirish
-                            if code == "RUB":
-                                code = "RUB"
-                            rate = float(item["nbu_buy_price"])
+                            rate = float(item["Rate"])  # CBU.uz API da "Rate" kalit so'zi ishlatiladi
                             rates[code] = rate
                             logger.debug(f"Parsed {code}: {rate}")
 
@@ -90,9 +86,7 @@ class CurrencyApi:
                 changes = []
                 for currency, new_rate in new_rates.items():
                     old_rate = self.rates.get(currency)
-                    if (
-                        old_rate and abs(new_rate - old_rate) >= 0.01
-                    ):  # 1 tiyin o'zgarish
+                    if old_rate and abs(new_rate - old_rate) >= 0.01:  # 1 tiyin o'zgarish
                         diff = new_rate - old_rate
                         percent = (diff / old_rate) * 100
                         changes.append(
@@ -147,7 +141,7 @@ class CurrencyApi:
                 return
 
             message = (
-                "💰 Bugungi valyuta kurslari (NBU.uz):\n\n"
+                "💰 Bugungi valyuta kurslari (CBU.uz):\n\n"
                 f"🇺🇸 1 USD = {self.rates.get('USD', 0):,.2f} UZS\n"
                 f"🇪🇺 1 EUR = {self.rates.get('EUR', 0):,.2f} UZS\n"
                 f"🇬🇧 1 GBP = {self.rates.get('GBP', 0):,.2f} UZS\n"
@@ -193,16 +187,15 @@ async def currency_update_task():
         await asyncio.sleep(300)  # 5 daqiqa
 
 
-
-
-import time as t
 async def daily_notification_task(bot):
     """Har kuni soat 11:30 da xabar yuborish"""
-    target_hour, target_minute = 22, 43
+    target_hour, target_minute = 9, 39
 
     while True:
         now = datetime.now()
-        next_run = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+        next_run = now.replace(
+            hour=target_hour, minute=target_minute, second=0, microsecond=0
+        )
 
         # Agar vaqt o'tgan bo'lsa, ertangi kunni hisoblang
         if now >= next_run:
@@ -213,4 +206,3 @@ async def daily_notification_task(bot):
 
         await asyncio.sleep(wait_seconds)
         await currency_api.send_daily_notification(bot)
-        t.sleep(1)
