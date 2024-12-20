@@ -194,8 +194,8 @@ async def currency_update_task():
 
 
 async def daily_notification_task(bot):
-    """Har kuni soat 7:30 da xabar yuborish"""
-    target_hour, target_minute = 7, 30
+    """Har kuni soat 7:30 da xabar yuborish server 5 soat orqada shuning uchun soat 2, 30 dep yozilgan"""
+    target_hour, target_minute = 2, 30
 
     while True:
         now = datetime.now()
