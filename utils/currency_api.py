@@ -193,14 +193,29 @@ async def currency_update_task():
         await asyncio.sleep(300)  # 5 daqiqa
 
 
+import pytz
+from datetime import datetime, timedelta
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
+
+def toshkent_now() -> datetime:
+    """Toshkent vaqtini olish"""
+    toshkent_zone = pytz.timezone('Asia/Tashkent')
+    return datetime.now(toshkent_zone).replace(tzinfo=None)
+
 async def daily_notification_task(bot):
-    """Har kuni soat 7:30 da xabar yuborish server 5 soat orqada shuning uchun soat 2, 30 dep yozilgan"""
-    target_hour, target_minute = 2, 30
+    """Har kuni Toshkent vaqti bilan soat 7:30 da xabar yuborish"""
+    target_hour, target_minute = 7, 30
 
     while True:
-        now = datetime.now()
+        now = toshkent_now()
         next_run = now.replace(
-            hour=target_hour, minute=target_minute, second=0, microsecond=0
+            hour=target_hour,
+            minute=target_minute,
+            second=0,
+            microsecond=0
         )
 
         # Agar vaqt o'tgan bo'lsa, ertangi kunni hisoblang
@@ -208,7 +223,11 @@ async def daily_notification_task(bot):
             next_run += timedelta(days=1)
 
         wait_seconds = (next_run - now).total_seconds()
-        logger.info(f"Keyingi xabar yuborish vaqti: {next_run} ({wait_seconds} soniya)")
+        logger.info(
+            f"Keyingi xabar yuborish vaqti: {next_run} "
+            f"(Toshkent vaqti bilan {next_run.strftime('%H:%M')})"
+            f"({wait_seconds} soniya)"
+        )
 
         await asyncio.sleep(wait_seconds)
         await currency_api.send_daily_notification(bot)
