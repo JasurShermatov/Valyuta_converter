@@ -234,7 +234,7 @@ async def process_amount(message: Message, state: FSMContext):
                 latest_update = update_time
 
         time_info = (
-            f"\n\n🕐 Yangilangan vaqt: {latest_update + timedelta(hours=5)}"
+            f"\n\n🕐 Yangilangan vaqt: {(latest_update + timedelta(hours=5)).strftime('%H:%M:%S')}"
             if latest_update
             else ""
         )
