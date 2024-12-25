@@ -2,7 +2,7 @@ from aiogram import Router, F
 from aiogram.types import CallbackQuery, Message
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from datetime import datetime
+from datetime import datetime, timedelta
 import asyncio
 from typing import Tuple, Optional
 from keyboards.inline.currency_kb import (
@@ -234,7 +234,7 @@ async def process_amount(message: Message, state: FSMContext):
                 latest_update = update_time
 
         time_info = (
-            f"\n\n🕐 Yangilangan vaqt: {latest_update.strftime('%H:%M:%S')}"
+            f"\n\n🕐 Yangilangan vaqt: {latest_update + timedelta(hours=5)}"
             if latest_update
             else ""
         )
