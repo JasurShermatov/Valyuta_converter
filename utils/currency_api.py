@@ -146,13 +146,17 @@ class CurrencyApi:
                 logger.error("Kunlik xabar uchun kurslarni yangilab bo'lmadi")
                 return
 
+            # Joriy vaqtni Toshkent vaqtiga o'tkazish
+            tz_tashkent = pytz.timezone('Asia/Tashkent')
+            update_time = datetime.now(pytz.UTC).astimezone(tz_tashkent)
+
             message = (
                 "💰 Bugungi valyuta kurslari (CBU.uz):\n\n"
                 f"🇺🇸 1 USD = {self.rates.get('USD', 0):,.2f} UZS\n"
                 f"🇪🇺 1 EUR = {self.rates.get('EUR', 0):,.2f} UZS\n"
                 f"🇬🇧 1 GBP = {self.rates.get('GBP', 0):,.2f} UZS\n"
                 f"🇷🇺 1 RUB = {self.rates.get('RUB', 0):,.2f} UZS\n\n"
-                f"🕐 Yangilangan vaqt: {self.last_update.strftime('%H:%M')}"
+                f"🕐 Yangilangan vaqt: {update_time.strftime('%H:%M')}"
             )
 
             users = await self.db.get_all_users()
@@ -172,6 +176,7 @@ class CurrencyApi:
 
         except Exception as e:
             logger.error(f"Kunlik xabar yuborishda xato: {e}")
+
 
 
 # Global instance
