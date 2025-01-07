@@ -45,6 +45,19 @@ async def init_db():
         conn.commit()
         logger.info("Users table created successfully!")
 
+        # Subscription table yaratish
+        logger.info("Creating subscription table...")
+        create_subscription_table_query = """
+            CREATE TABLE IF NOT EXISTS subscription (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                link VARCHAR(255) NOT NULL
+            );
+        """
+        cur.execute(create_subscription_table_query)
+        conn.commit()
+        logger.info("Subscription table created successfully!")
+
         # Table yaratilganini tekshirish
         cur.execute(
             "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users')"

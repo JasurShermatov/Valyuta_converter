@@ -13,6 +13,13 @@ from sqlalchemy import (
 Base = declarative_base()
 
 
+class Subscription(Base):
+    __tablename__ = "subscription"
+    id = Column(Integer, primary_key=True)
+    name = Column(String, nullable=False)
+    link = Column(String, nullable=False)
+
+
 class User(Base):
     __tablename__ = "users"
 

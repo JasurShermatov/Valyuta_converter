@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 class DataBase:
     def __init__(self):
         self.config = load_config()
-        # Debug level ga o'tkazamiz
         logger.setLevel(logging.DEBUG)
 
     async def get_connection(self):
+        """PostgreSQL bazasiga ulanish"""
         try:
             conn = psycopg2.connect(
                 dbname=self.config.db.database,
@@ -29,6 +29,75 @@ class DataBase:
         except Exception as e:
             logger.error(f"Error connecting to database: {e}")
             raise
+
+    async def get_all_subscriptions(self):
+        """Bazadagi barcha kanallarni olish."""
+        with await self.get_connection() as conn:
+            with conn.cursor(cursor_factory=DictCursor) as cur:
+                query = "SELECT id, name, link FROM subscription;"
+                cur.execute(query)
+                subscriptions = cur.fetchall()
+                return subscriptions
+
+    async def add_subscription(self, name, link):
+        """Yangi kanal qo'shish."""
+        with await self.get_connection() as conn:
+            with conn.cursor() as cur:
+                # Link yoki nom bo'yicha tekshirish
+                check_query = (
+                    "SELECT id FROM subscription WHERE name = %s OR link = %s;"
+                )
+                cur.execute(check_query, (name, link))
+                result = cur.fetchone()
+
+                if result:
+                    return f"❌ Kanal allaqachon qo'shilgan. {name} ({link})"
+
+                # Kanalni bazaga qo'shish
+                insert_query = """
+                    INSERT INTO subscription (name, link)
+                    VALUES (%s, %s)
+                    RETURNING name;
+                """
+                cur.execute(insert_query, (name, link))
+                subscription_name = cur.fetchone()
+                conn.commit()
+                return f"✅ Kanal muvaffaqiyatli qo'shildi! Subscription name: {subscription_name[0]}"
+
+    async def delete_subscription(self, subscription_id):
+        """Bazadan kanalni o'chirish."""
+        with await self.get_connection() as conn:
+            with conn.cursor() as cur:
+                query = "DELETE FROM subscription WHERE id = %s;"
+                cur.execute(query, (subscription_id,))
+                conn.commit()
+
+    async def update_subscription(self, subscription_id, name=None, link=None):
+        """Bazadagi mavjud kanallarning ma'lumotlarini yangilash."""
+        if not name and not link:
+            return "❗ Yangilash uchun hech qanday ma'lumot kiritilmadi."
+
+        async with self.get_connection() as conn:
+            async with conn.cursor() as cur:
+                # Yangilanish uchun parametrlarni to'plang
+                parts = []
+                params = []
+
+                if name:
+                    parts.append("name = %s")
+                    params.append(name)
+                if link:
+                    parts.append("link = %s")
+                    params.append(link)
+
+                # subscription_id-ni qo'shamiz
+                params.append(subscription_id)
+
+                # SQL so'rovi
+                query = f"UPDATE subscription SET {', '.join(parts)} WHERE id = %s;"
+                await cur.execute(query, params)
+                await conn.commit()
+                return f"✅ Subscription ID {subscription_id} yangilandi!"
 
     async def count_users(self) -> int:
         """Jami foydalanuvchilar sonini qaytaradi"""
@@ -100,7 +169,6 @@ class DataBase:
         phone_number: str = None,
         is_premium: bool = False,
     ):
-        """Yangi foydalanuvchi qo'shish"""
         conn = await self.get_connection()
         try:
             # Telefon raqamini tozalash
@@ -183,7 +251,9 @@ class DataBase:
 
     # Mavjud DataBase klassiga qo'shiladigan metodlar
 
-    async def update_premium_status(self, user_id: int, is_premium: bool = True, expire_date: datetime = None):
+    async def update_premium_status(
+        self, user_id: int, is_premium: bool = True, expire_date: datetime = None
+    ):
         """Foydalanuvchi premium statusini yangilash"""
         conn = await self.get_connection()
         try:
@@ -210,7 +280,7 @@ class DataBase:
                 INSERT INTO premium_history (user_id, action_type, expire_date)
                 VALUES (%s, %s, %s)
             """
-            action_type = 'activate' if is_premium else 'deactivate'
+            action_type = "activate" if is_premium else "deactivate"
             cur.execute(history_query, (user_id, action_type, expire_date))
 
             conn.commit()
@@ -282,19 +352,23 @@ class DataBase:
             """
             cur.execute(query, (user_id,))
             result = cur.fetchone()
-            return dict(result) if result else {
-                'is_premium': False,
-                'is_active': False,
-                'premium_expire_date': None,
-                'premium_updated_at': None
-            }
+            return (
+                dict(result)
+                if result
+                else {
+                    "is_premium": False,
+                    "is_active": False,
+                    "premium_expire_date": None,
+                    "premium_updated_at": None,
+                }
+            )
         except Exception as e:
             logger.error(f"Premium statusni olishda xato {user_id}: {e}")
             return {
-                'is_premium': False,
-                'is_active': False,
-                'premium_expire_date': None,
-                'premium_updated_at': None
+                "is_premium": False,
+                "is_active": False,
+                "premium_expire_date": None,
+                "premium_updated_at": None,
             }
         finally:
             conn.close()
@@ -331,15 +405,9 @@ class DataBase:
             return stats
         except Exception as e:
             logger.error(f"Premium statistikani olishda xato: {e}")
-            return {
-                'active_premium': 0,
-                'expired_premium': 0,
-                'total_premium': 0
-            }
+            return {"active_premium": 0, "expired_premium": 0, "total_premium": 0}
         finally:
             conn.close()
-
-
 
     async def count_premium_users(self) -> int:
         """Premium foydalanuvchilar sonini olish"""

@@ -50,8 +50,6 @@ def create_convert_keyboard(from_currency: str, selected_currencies: List[str] =
     kb.button(text="🔄 Qaytadan tanlash", callback_data="reset")
     kb.button(text="🧮 Hisoblash", callback_data="calculate")
 
-
-
     buttons_count = len(available_currencies)
     layout = [1] * buttons_count + [2]
     kb.adjust(*layout)

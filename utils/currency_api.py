@@ -147,7 +147,7 @@ class CurrencyApi:
                 return
 
             # Joriy vaqtni Toshkent vaqtiga o'tkazish
-            tz_tashkent = pytz.timezone('Asia/Tashkent')
+            tz_tashkent = pytz.timezone("Asia/Tashkent")
             update_time = datetime.now(pytz.UTC).astimezone(tz_tashkent)
 
             message = (
@@ -178,7 +178,6 @@ class CurrencyApi:
             logger.error(f"Kunlik xabar yuborishda xato: {e}")
 
 
-
 # Global instance
 currency_api = CurrencyApi()
 
@@ -205,10 +204,12 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def toshkent_now() -> datetime:
     """Toshkent vaqtini olish"""
-    toshkent_zone = pytz.timezone('Asia/Tashkent')
+    toshkent_zone = pytz.timezone("Asia/Tashkent")
     return datetime.now(toshkent_zone).replace(tzinfo=None)
+
 
 async def daily_notification_task(bot):
     """Har kuni Toshkent vaqti bilan soat 7:30 da xabar yuborish"""
@@ -217,10 +218,7 @@ async def daily_notification_task(bot):
     while True:
         now = toshkent_now()
         next_run = now.replace(
-            hour=target_hour,
-            minute=target_minute,
-            second=0,
-            microsecond=0
+            hour=target_hour, minute=target_minute, second=0, microsecond=0
         )
 
         # Agar vaqt o'tgan bo'lsa, ertangi kunni hisoblang

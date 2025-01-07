@@ -3,25 +3,32 @@ import os
 from datetime import datetime
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, FSInputFile
+from aiogram.types import Message, FSInputFile, InlineKeyboardMarkup
 from filters.admin import AdminFilter
-from keyboards.default.admin_kb import admin_keyboard
+from keyboards.default.admin_kb import admin_keyboard, channels_button
 from utils.database.db import DataBase
 import pandas as pd
 from openpyxl.styles import Font, PatternFill
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from data.config import load_config
+
+admins: list[int] = load_config().bot.admin_ids
 
 router = Router()
 db = DataBase()
 
-# 'data/files' papkasini yaratish
-os.makedirs("data/files", exist_ok=True)
+
+# Kanal qo'shish va o'chirish state'lari
+class ChannelStates(StatesGroup):
+    add_channel = State()
+    delete_channel = State()
 
 
-@router.message(Command("admin"))
+# Admin panel funksiyasi
+@router.message(AdminFilter(), Command("admin"))
 async def admin_panel(message: Message):
-    # Admin ekanligini tekshirish
-    if not await AdminFilter()(message):
+    if message.from_user.id not in admins:
         await message.answer("Bu buyruq faqat adminlar uchun!")
         return
 
@@ -29,6 +36,81 @@ async def admin_panel(message: Message):
         "👋 Admin panel:\n\n" "🔍 Quyidagi funksiyalardan foydalanishingiz mumkin:",
         reply_markup=admin_keyboard,
     )
+
+
+@router.message(AdminFilter(), F.text == "➕ Kanal qo'shish")
+async def add_channel(message: Message, state: FSMContext):
+    await message.answer(
+        "📢 <b>Kanal qo'shish uchun quyidagi formatda ma'lumot kiriting:</b>\n\n"
+        "🔹 <code>nom|link</code>\n\n"
+        "📝 <b>Misol uchun:</b>\n"
+        "<code>myKanal|https://t.me/mykanaluz</code>\n\n"
+        "❗️ <b>Diqqat:</b> Link to'g'ri formatda kiritilishi shart.\n"
+        "✅ Faqat <b>https://t.me/</b> bilan boshlanuvchi linklarni kiritish mumkin."
+    )
+    await state.set_state(ChannelStates.add_channel)
+
+
+@router.message(ChannelStates.add_channel)
+async def process_add_channel(message: Message, state: FSMContext):
+    try:
+        data = message.text.split("|")
+        if len(data) != 2:
+            raise ValueError("Noto'g'ri format. Format: nom|link bo'lishi kerak")
+
+        name, link = data
+
+        # Add the channel to the database
+        result = await db.add_subscription(name=name.strip(), link=link.strip())
+
+        await message.answer(result)  # Return the result message from the DB function
+    except ValueError as e:
+        await message.answer(f"❌ Xatolik: {str(e)}")
+    except Exception as e:
+        await message.answer(f"❌ Xatolik yuz berdi: {e}")
+    finally:
+        await state.clear()
+
+
+from aiogram import Router, F
+from aiogram.types import Message, CallbackQuery
+from filters.admin import AdminFilter
+from keyboards.inline.channel_actions import get_delete_channel_keyboard
+
+
+@router.message(AdminFilter(), F.text == "➖ Kanal o'chirish")
+async def delete_channel(message: Message):
+    """Kanalni o'chirish uchun mavjud kanallar ro'yxatini chiqarish."""
+    keyboard = await get_delete_channel_keyboard()
+    if not keyboard:
+        await message.answer("❌ Bazada kanallar mavjud emas!")
+        return
+
+    await message.answer(
+        "🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=keyboard
+    )
+
+
+@router.callback_query(F.data.startswith("delete_channel:"))
+async def process_delete_channel(callback: CallbackQuery):
+    """Tanlangan kanalni bazadan o'chirish."""
+    subscription_id = int(callback.data.split(":")[1])
+
+    try:
+        # Bazadan kanalni o'chirish
+        await db.delete_subscription(subscription_id)  # ✅ Asinxron chaqirildi
+        await callback.answer("✅ Kanal muvaffaqiyatli o'chirildi!", show_alert=True)
+    except Exception as e:
+        await callback.answer(f"❌ Xatolik yuz berdi: {e}", show_alert=True)
+
+    # Yangilangan ro'yxatni qayta chiqarish
+    new_keyboard = await get_delete_channel_keyboard()
+    if new_keyboard:
+        await callback.message.edit_text(
+            "🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=new_keyboard
+        )
+    else:
+        await callback.message.edit_text("✅ Barcha kanallar o'chirildi!")
 
 
 @router.message(AdminFilter(), F.text == "📊 Statistika")
@@ -146,6 +228,12 @@ async def get_users_excel(message: Message):
     except Exception as e:
         print(f"Error creating Excel file: {e}")
         await message.answer("❌ Excel fayl yaratishda xatolik yuz berdi")
+
+
+@router.message(AdminFilter(), F.text == "📋 Kanallar ro'yxati")
+async def get_channels(message: Message):
+    buttons = await channels_button()
+    await message.answer("Barcha kanallar:\n", reply_markup=buttons)
 
 
 @router.message(AdminFilter(), F.text == "⬅️ Orqaga")

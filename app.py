@@ -6,12 +6,11 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
-# Handler va routerlar
 from handlers.users.main import start_router
-from handlers.users.admin.admin import router as admin_router
-from handlers.users.admin.admin_base import router as admin_base_router
 from handlers.users.admin.admin_spams import router as admin_spams_router
 from handlers.users.main.converter import router as converter_router
+from handlers.users.admin.admin import router as admin_router
+
 
 # API va utillar
 from utils.currency_api import (
@@ -87,9 +86,9 @@ async def init_services(bot: Bot):
 
 def setup_handlers(dp: Dispatcher):
     """Barcha handlerlarni ulash"""
-    dp.include_router(start_router)
     dp.include_router(admin_router)
-    dp.include_router(admin_base_router)
+    dp.include_router(start_router)
+    # dp.include_router(admin_base_router)
     dp.include_router(admin_spams_router)
     dp.include_router(converter_router)
     logger.info("Barcha handlerlar ulandi")

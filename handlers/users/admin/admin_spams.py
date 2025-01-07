@@ -39,8 +39,7 @@ async def process_broadcast(message: Message, state: FSMContext):
     all_users = len(users)
 
     status_msg = await message.answer(
-        "📤 Xabar yuborish boshlandi...\n\n"
-        f"📊 Jami foydalanuvchilar: {all_users} ta"
+        "📤 Xabar yuborish boshlandi...\n\n" f"📊 Jami foydalanuvchilar: {all_users} ta"
     )
 
     for user in users:
