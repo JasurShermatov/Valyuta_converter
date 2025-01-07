@@ -10,6 +10,9 @@ from handlers.users.main import start_router
 from handlers.users.admin.admin_spams import router as admin_spams_router
 from handlers.users.main.converter import router as converter_router
 from handlers.users.admin.admin import router as admin_router
+from dotenv import load_dotenv
+
+load_dotenv()
 
 
 # API va utillar
