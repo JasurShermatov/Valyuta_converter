@@ -15,7 +15,7 @@ Base = declarative_base()
 
 class Subscription(Base):
     __tablename__ = "subscription"
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
     link = Column(String, nullable=False)
 

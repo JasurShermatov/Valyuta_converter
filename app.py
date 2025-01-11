@@ -2,7 +2,7 @@
 import asyncio
 import logging
 import sys
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 
@@ -10,10 +10,10 @@ from handlers.users.main import start_router
 from handlers.users.admin.admin_spams import router as admin_spams_router
 from handlers.users.main.converter import router as converter_router
 from handlers.users.admin.admin import router as admin_router
+from middlewares.checksub import CheckSubscriptionMiddleware
 from dotenv import load_dotenv
 
 load_dotenv()
-
 
 # API va utillar
 from utils.currency_api import (
@@ -88,13 +88,33 @@ async def init_services(bot: Bot):
 
 
 def setup_handlers(dp: Dispatcher):
-    """Barcha handlerlarni ulash"""
+    """Barcha handlerlarni ulash va middleware'ni qo'shish"""
+    # Middleware'ni barcha routerlarga qo'shish
+    middleware = CheckSubscriptionMiddleware()
+
+    # Admin router uchun middleware
+    admin_router.message.middleware(middleware)
+    admin_router.callback_query.middleware(middleware)
+
+    # Start router uchun middleware
+    start_router.message.middleware(middleware)
+    start_router.callback_query.middleware(middleware)
+
+    # Admin spams router uchun middleware
+    admin_spams_router.message.middleware(middleware)
+    admin_spams_router.callback_query.middleware(middleware)
+
+    # Converter router uchun middleware
+    converter_router.message.middleware(middleware)
+    converter_router.callback_query.middleware(middleware)
+
+    # Routerlarni Dispatcher'ga ulash
     dp.include_router(admin_router)
     dp.include_router(start_router)
-    # dp.include_router(admin_base_router)
     dp.include_router(admin_spams_router)
     dp.include_router(converter_router)
-    logger.info("Barcha handlerlar ulandi")
+
+    logger.info("Barcha handlerlar va middleware'lar ulandi")
 
 
 async def main():
@@ -104,11 +124,12 @@ async def main():
 
     # Bot va Dispatcher yaratish
     bot = Bot(
-        token=config.bot.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+        token=config.bot.token,
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
     dp = Dispatcher()
 
-    # Handlerlarni ulash
+    # Handlerlar va middleware'larni ulash
     setup_handlers(dp)
 
     # Servislarni ishga tushirish

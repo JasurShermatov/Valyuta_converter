@@ -1,64 +1,73 @@
+# handlers.users.main.start
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+
+from keyboards.inline.currency_kb import create_currency_keyboard
 from utils.database.db import DataBase
 from keyboards.inline.user import get_channel_keyboard
 from data.config import load_config
 from middlewares.checksub import CheckSubscriptionMiddleware
-from keyboards.inline.currency_kb import create_currency_keyboard
 
+# Global obyektlar
 router = Router()
 db = DataBase()
 config = load_config()
+check_sub_middleware = CheckSubscriptionMiddleware()
 
 
-# Start handler
 @router.message(Command("start"))
 async def start_handler(message: Message):
     user_id = message.from_user.id
     username = message.from_user.username
     full_name = message.from_user.full_name
 
+    # Foydalanuvchini bazaga qo'shish
     await db.add_user(
         user_id=user_id, username=username, full_name=full_name, is_premium=False
     )
 
-    is_subscribed = await CheckSubscriptionMiddleware().check_all_subscriptions(
-        user_id, message.bot
+    # Obuna bo'lmagan kanallar ro'yxatini tekshirish
+    missing_channels = await check_sub_middleware.check_all_subscriptions(
+        user_id=user_id, bot=message.bot
     )
-    if not is_subscribed:
+
+    if missing_channels:
+        # Agar obuna bo'lmagan kanallar bo'lsa, ularga obuna bo'lishni so'rash
+        keyboard = await get_channel_keyboard(missing_channels)
         await message.answer(
-            "Iltimos, botdan foydalanish uchun avval kanalga obuna bo'ling.",
-            reply_markup=await get_channel_keyboard(),
+            f"📢 Iltimos, quyidagi {len(missing_channels)} ta kanalga obuna bo'ling:",
+            reply_markup=keyboard,
         )
     else:
+        # Asosiy menyuni ko'rsatish
         await show_main_menu(message)
-
-
-# Confirmation and subscription check
-@router.callback_query(F.data == "confirm_subscription")
-async def confirm_subscription_handler(callback: CallbackQuery):
-    is_subscribed = await CheckSubscriptionMiddleware().check_all_subscriptions(
-        callback.from_user.id, callback.bot
-    )
-    if is_subscribed:
-        await callback.message.edit_text(
-            "Obuna tasdiqlandi! Endi botni to'liq ishlatishingiz mumkin."
-        )
-        await show_main_menu(callback.message)
-    else:
-        await callback.answer("Iltimos, avval kanalga obuna bo'ling!", show_alert=True)
 
 
 @router.callback_query(F.data == "check_subscription")
 async def check_subscription_handler(callback: CallbackQuery):
-    is_subscribed = await CheckSubscriptionMiddleware().check_all_subscriptions(
-        callback.from_user.id, callback.bot
+    # Faqat obuna bo'lmagan kanallarni tekshirish
+    missing_channels = await check_sub_middleware.check_all_subscriptions(
+        user_id=callback.from_user.id, bot=callback.bot
     )
-    if not is_subscribed:
-        await callback.answer("Siz kanalga a'zo bo'lmagansiz!", show_alert=True)
+
+    if missing_channels:
+        # Obuna bo'lmagan kanallar uchun yangi klaviatura yaratish
+        keyboard = await get_channel_keyboard(missing_channels)
+        await callback.message.edit_text(
+            f"📢 Yana {len(missing_channels)} ta kanalga obuna bo'lishingiz kerak:",
+            reply_markup=keyboard,
+        )
+        await callback.answer(
+            f"Siz hali {len(missing_channels)} ta kanalga obuna bo'lmagansiz!",
+            show_alert=True,
+        )
     else:
+        # Barcha kanallarga obuna bo'lgan bo'lsa
+        await callback.message.edit_text(
+            "✅ Obuna tasdiqlandi! Endi botdan to'liq foydalanishingiz mumkin."
+        )
         await show_main_menu(callback.message)
 
 
@@ -67,7 +76,7 @@ async def show_main_menu(message: Message):
         f"👋 Assalomu alaykum, {message.from_user.first_name}\n"
         f"Valyuta konvertatsiya botiga xush kelibsiz!\n\n"
         f"💱 Quyidagi valyutalardan birini tanlang:\n\n"
-        f"✅ Bir vaqtning o'zida bir nechta valyutaga konvertatsiya qilishingiz mumkin!",
+        f"✅ Bir vaqtning o'zida bir nechta valyutaga konvertatsiya qilish imkoniyati mavjud!",
         reply_markup=create_currency_keyboard(),
     )
 

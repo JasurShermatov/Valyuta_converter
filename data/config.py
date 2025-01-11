@@ -1,3 +1,4 @@
+# data.config
 from dataclasses import dataclass
 import os
 from dotenv import load_dotenv
