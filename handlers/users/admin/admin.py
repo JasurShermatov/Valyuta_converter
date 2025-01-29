@@ -12,6 +12,11 @@ from openpyxl.styles import Font, PatternFill
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from data.config import load_config
+from aiogram import Router, F
+from aiogram.types import Message, CallbackQuery
+from filters.admin import AdminFilter
+from keyboards.inline.channel_actions import get_delete_channel_keyboard
+
 
 admins: list[int] = load_config().bot.admin_ids
 
@@ -72,10 +77,7 @@ async def process_add_channel(message: Message, state: FSMContext):
         await state.clear()
 
 
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
-from filters.admin import AdminFilter
-from keyboards.inline.channel_actions import get_delete_channel_keyboard
+
 
 
 @router.message(AdminFilter(), F.text == "➖ Kanal o'chirish")
@@ -222,6 +224,10 @@ async def get_users_excel(message: Message):
                     f"👥 Jami: {len(users):,} ta foydalanuvchi"
                 ),
             )
+            try:
+                os.remove(filepath)
+            except FileNotFoundError:
+                pass
         else:
             raise FileNotFoundError(f"Excel file not found at {filepath}")
 
