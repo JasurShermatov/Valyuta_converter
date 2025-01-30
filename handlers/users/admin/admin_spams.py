@@ -6,7 +6,6 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from filters.admin import AdminFilter
 from utils.database.db import DataBase
-from datetime import datetime
 import asyncio
 
 router = Router()

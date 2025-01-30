@@ -1,6 +1,5 @@
 import aiohttp
-import asyncio
-from datetime import datetime, time, timedelta
+from datetime import datetime
 import logging
 from typing import Dict, Optional, Tuple
 from utils.database.db import DataBase
@@ -38,7 +37,7 @@ class CurrencyApi:
         """CBU.uz dan valyuta kurslarini olish"""
         try:
             session = await self._get_session()
-            async with session.get(self._url) as response:
+            async with session.get(self._url, ssl=False) as response:  # ssl=False qo‘shildi
                 if response.status != 200:
                     logger.error(f"CBU.uz API xatosi: {response.status}")
                     return None
@@ -48,13 +47,9 @@ class CurrencyApi:
 
                 for item in data:
                     try:
-                        code = item[
-                            "Ccy"
-                        ]  # CBU.uz API da "Ccy" kalit so'zi ishlatiladi
+                        code = item["Ccy"]
                         if code in ["USD", "EUR", "GBP", "RUB"]:
-                            rate = float(
-                                item["Rate"]
-                            )  # CBU.uz API da "Rate" kalit so'zi ishlatiladi
+                            rate = float(item["Rate"])
                             rates[code] = rate
                             logger.debug(f"Parsed {code}: {rate}")
 
@@ -77,6 +72,7 @@ class CurrencyApi:
             return None
         finally:
             await self._close_session()
+
 
     async def update_rates(self) -> bool:
         """Kurslarni yangilash va farqlarni tekshirish"""

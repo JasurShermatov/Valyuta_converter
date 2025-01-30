@@ -5,13 +5,14 @@ import sys
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
-
 from handlers.users.main import start_router
 from handlers.users.admin.admin_spams import router as admin_spams_router
 from handlers.users.main.converter import router as converter_router
 from handlers.users.admin.admin import router as admin_router
 from middlewares.checksub import CheckSubscriptionMiddleware
 from dotenv import load_dotenv
+from data.config import load_config
+from utils.database.db_init import init_db
 
 load_dotenv()
 
@@ -21,8 +22,7 @@ from utils.currency_api import (
     currency_update_task,
     daily_notification_task,
 )
-from data.config import load_config
-from utils.database.db_init import init_db
+
 
 # Currency API instance
 currency_api = CurrencyApi()

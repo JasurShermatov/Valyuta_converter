@@ -34,20 +34,21 @@ class DataBase:
         """Bazadagi barcha kanallarni olish."""
         with await self.get_connection() as conn:
             with conn.cursor(cursor_factory=DictCursor) as cur:
-                query = "SELECT id, name, link FROM subscription;"
+                query = "SELECT id, name, link, channel_id FROM subscription;"
                 cur.execute(query)
                 subscriptions = cur.fetchall()
                 return subscriptions
 
-    async def add_subscription(self, name, link):
+
+    async def add_subscription(self, name, link, channel_id):
         """Yangi kanal qo'shish."""
         with await self.get_connection() as conn:
             with conn.cursor() as cur:
-                # Link yoki nom bo'yicha tekshirish
+                # Link yoki nom yoki channel_id bo'yicha tekshirish
                 check_query = (
-                    "SELECT id FROM subscription WHERE name = %s OR link = %s;"
+                    "SELECT id FROM subscription WHERE name = %s OR link = %s OR channel_id = %s;"
                 )
-                cur.execute(check_query, (name, link))
+                cur.execute(check_query, (name, link, channel_id))
                 result = cur.fetchone()
 
                 if result:
@@ -55,14 +56,16 @@ class DataBase:
 
                 # Kanalni bazaga qo'shish
                 insert_query = """
-                    INSERT INTO subscription (name, link)
-                    VALUES (%s, %s)
+                    INSERT INTO subscription (name, link, channel_id)
+                    VALUES (%s, %s, %s)
                     RETURNING name;
                 """
-                cur.execute(insert_query, (name, link))
+                cur.execute(insert_query, (name, link, channel_id))
                 subscription_name = cur.fetchone()
                 conn.commit()
                 return f"✅ Kanal muvaffaqiyatli qo'shildi! Subscription name: {subscription_name[0]}"
+
+
 
     async def delete_subscription(self, subscription_id):
         """Bazadan kanalni o'chirish."""
@@ -72,14 +75,13 @@ class DataBase:
                 cur.execute(query, (subscription_id,))
                 conn.commit()
 
-    async def update_subscription(self, subscription_id, name=None, link=None):
+    async def update_subscription(self, subscription_id, name=None, link=None, channel_id=None):
         """Bazadagi mavjud kanallarning ma'lumotlarini yangilash."""
-        if not name and not link:
+        if not name and not link and not channel_id:
             return "❗ Yangilash uchun hech qanday ma'lumot kiritilmadi."
 
-        async with self.get_connection() as conn:
-            async with conn.cursor() as cur:
-                # Yangilanish uchun parametrlarni to'plang
+        with await self.get_connection() as conn:
+            with conn.cursor() as cur:
                 parts = []
                 params = []
 
@@ -89,15 +91,18 @@ class DataBase:
                 if link:
                     parts.append("link = %s")
                     params.append(link)
+                if channel_id:
+                    parts.append("channel_id = %s")
+                    params.append(channel_id)
 
-                # subscription_id-ni qo'shamiz
                 params.append(subscription_id)
 
-                # SQL so'rovi
                 query = f"UPDATE subscription SET {', '.join(parts)} WHERE id = %s;"
-                await cur.execute(query, params)
-                await conn.commit()
+                cur.execute(query, params)
+                conn.commit()
                 return f"✅ Subscription ID {subscription_id} yangilandi!"
+
+
 
     async def count_users(self) -> int:
         """Jami foydalanuvchilar sonini qaytaradi"""

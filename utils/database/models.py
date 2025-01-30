@@ -18,6 +18,7 @@ class Subscription(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
     link = Column(String, nullable=False)
+    channel_id = Column(BigInteger, unique=True)
 
 
 class User(Base):

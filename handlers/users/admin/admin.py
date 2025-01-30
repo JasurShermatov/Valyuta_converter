@@ -1,10 +1,8 @@
 # handlers/users/admin/admin.py
 import os
 from datetime import datetime
-from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, FSInputFile, InlineKeyboardMarkup
-from filters.admin import AdminFilter
+from aiogram.types import FSInputFile
 from keyboards.default.admin_kb import admin_keyboard, channels_button
 from utils.database.db import DataBase
 import pandas as pd
@@ -24,34 +22,36 @@ router = Router()
 db = DataBase()
 
 
-# Kanal qo'shish va o'chirish state'lari
+# 📌 Kanal qo‘shish va o‘chirish uchun FSM state'lari
 class ChannelStates(StatesGroup):
     add_channel = State()
     delete_channel = State()
 
 
-# Admin panel funksiyasi
+# 📌 Admin panel
 @router.message(AdminFilter(), Command("admin"))
 async def admin_panel(message: Message):
     if message.from_user.id not in admins:
-        await message.answer("Bu buyruq faqat adminlar uchun!")
+        await message.answer("❌ Bu buyruq faqat adminlar uchun!")
         return
 
     await message.answer(
-        "👋 Admin panel:\n\n" "🔍 Quyidagi funksiyalardan foydalanishingiz mumkin:",
+        "👋 Admin panel:\n\n🔍 Quyidagi funksiyalardan foydalanishingiz mumkin:",
         reply_markup=admin_keyboard,
     )
 
 
+# 📌 ➕ Kanal qo‘shish
 @router.message(AdminFilter(), F.text == "➕ Kanal qo'shish")
 async def add_channel(message: Message, state: FSMContext):
     await message.answer(
         "📢 <b>Kanal qo'shish uchun quyidagi formatda ma'lumot kiriting:</b>\n\n"
-        "🔹 <code>nom|link</code>\n\n"
+        "🔹 <code>nom|link|ID</code>\n\n"
         "📝 <b>Misol uchun:</b>\n"
-        "<code>myKanal|https://t.me/mykanaluz</code>\n\n"
-        "❗️ <b>Diqqat:</b> Link to'g'ri formatda kiritilishi shart.\n"
-        "✅ Faqat <b>https://t.me/</b> bilan boshlanuvchi linklarni kiritish mumkin."
+        "<code>myKanal|https://t.me/mykanaluz|-1001234567890</code>\n\n"
+        "❗️ <b>Diqqat:</b> Link to'g'ri formatda bo'lishi shart.\n"
+        "✅ Faqat <b>https://t.me/</b> bilan boshlanuvchi linklarni kiritish mumkin.\n"
+        "🔹 Kanal ID ni olish uchun: <code>@username</code> ni kanalga yuboring va `/id` botidan foydalaning."
     )
     await state.set_state(ChannelStates.add_channel)
 
@@ -60,59 +60,62 @@ async def add_channel(message: Message, state: FSMContext):
 async def process_add_channel(message: Message, state: FSMContext):
     try:
         data = message.text.split("|")
-        if len(data) != 2:
-            raise ValueError("Noto'g'ri format. Format: nom|link bo'lishi kerak")
+        if len(data) != 3:
+            raise ValueError("❌ Noto‘g‘ri format! To‘g‘ri format: <code>nom|link|ID</code> bo‘lishi kerak")
 
-        name, link = data
+        name, link, channel_id = data
+        name, link, channel_id = name.strip(), link.strip(), channel_id.strip()
 
-        # Add the channel to the database
-        result = await db.add_subscription(name=name.strip(), link=link.strip())
+        # Kanal ID raqam ekanligini tekshirish
+        if not channel_id.lstrip("-").isdigit():
+            raise ValueError("❌ Kanal ID noto‘g‘ri! ID faqat sonlardan iborat bo‘lishi kerak.")
 
-        await message.answer(result)  # Return the result message from the DB function
+        channel_id = int(channel_id)  # Int formatga o‘tkazish
+
+        # Kanalni bazaga qo‘shish
+        result = await db.add_subscription(name=name, link=link, channel_id=channel_id)
+        await message.answer(f"✅ {result}")  # Bazadan qaytgan natijani yuborish
+
     except ValueError as e:
-        await message.answer(f"❌ Xatolik: {str(e)}")
+        await message.answer(str(e))
     except Exception as e:
         await message.answer(f"❌ Xatolik yuz berdi: {e}")
     finally:
         await state.clear()
 
 
-
-
-
+# 📌 ➖ Kanal o‘chirish
 @router.message(AdminFilter(), F.text == "➖ Kanal o'chirish")
 async def delete_channel(message: Message):
-    """Kanalni o'chirish uchun mavjud kanallar ro'yxatini chiqarish."""
     keyboard = await get_delete_channel_keyboard()
     if not keyboard:
         await message.answer("❌ Bazada kanallar mavjud emas!")
         return
 
-    await message.answer(
-        "🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=keyboard
-    )
+    await message.answer("🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=keyboard)
 
 
 @router.callback_query(F.data.startswith("delete_channel:"))
 async def process_delete_channel(callback: CallbackQuery):
-    """Tanlangan kanalni bazadan o'chirish."""
+    """Tanlangan kanalni bazadan o‘chirish."""
     subscription_id = int(callback.data.split(":")[1])
 
     try:
-        # Bazadan kanalni o'chirish
-        await db.delete_subscription(subscription_id)  # ✅ Asinxron chaqirildi
-        await callback.answer("✅ Kanal muvaffaqiyatli o'chirildi!", show_alert=True)
+        await db.delete_subscription(subscription_id)  # ✅ Asinxron bazadan o‘chirish
+        await callback.answer("✅ Kanal muvaffaqiyatli o‘chirildi!", show_alert=True)
     except Exception as e:
         await callback.answer(f"❌ Xatolik yuz berdi: {e}", show_alert=True)
 
-    # Yangilangan ro'yxatni qayta chiqarish
+    # Yangilangan ro‘yxatni qayta chiqarish
     new_keyboard = await get_delete_channel_keyboard()
     if new_keyboard:
-        await callback.message.edit_text(
-            "🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=new_keyboard
-        )
+        await callback.message.edit_text("🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=new_keyboard)
     else:
-        await callback.message.edit_text("✅ Barcha kanallar o'chirildi!")
+        await callback.message.edit_text("✅ Barcha kanallar o‘chirildi!")
+
+
+
+
 
 
 @router.message(AdminFilter(), F.text == "📊 Statistika")
@@ -235,11 +238,13 @@ async def get_users_excel(message: Message):
         print(f"Error creating Excel file: {e}")
         await message.answer("❌ Excel fayl yaratishda xatolik yuz berdi")
 
-
+# 📌 📋 Kanallar ro‘yxati
 @router.message(AdminFilter(), F.text == "📋 Kanallar ro'yxati")
 async def get_channels(message: Message):
     buttons = await channels_button()
     await message.answer("Barcha kanallar:\n", reply_markup=buttons)
+
+
 
 
 @router.message(AdminFilter(), F.text == "⬅️ Orqaga")

@@ -51,7 +51,8 @@ async def init_db():
             CREATE TABLE IF NOT EXISTS subscription (
                 id SERIAL PRIMARY KEY,
                 name VARCHAR(255) NOT NULL,
-                link VARCHAR(255) NOT NULL
+                link VARCHAR(255) NOT NULL,
+                channel_id BIGINT UNIQUE
             );
         """
         cur.execute(create_subscription_table_query)

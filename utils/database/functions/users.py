@@ -1,6 +1,6 @@
 # utils/database/functions/users.py
 import psycopg2
-from datetime import datetime, timedelta
+from datetime import datetime
 import pandas as pd
 from data.config import load_config
 
