@@ -34,9 +34,7 @@ async def get_channel_keyboard(missing_channels: list = None) -> InlineKeyboardM
 
     # Faqat obuna bo'lmagan kanallar uchun tugmalar yaratish
     buttons = [
-        InlineKeyboardButton(
-            text=f"{channel['name']}", url=channel["link"]
-        )
+        InlineKeyboardButton(text=f"{channel['name']}", url=channel["link"])
         for channel in channels
     ]
 
@@ -45,7 +43,11 @@ async def get_channel_keyboard(missing_channels: list = None) -> InlineKeyboardM
 
     # "♻️ TEKSHIRISH" tugmasini qo'shamiz
     inline_buttons.append(
-        [InlineKeyboardButton(text="✅OBUNA BO'LDIM", callback_data="check_subscription")]
+        [
+            InlineKeyboardButton(
+                text="✅OBUNA BO'LDIM", callback_data="check_subscription"
+            )
+        ]
     )
 
     return InlineKeyboardMarkup(inline_keyboard=inline_buttons)

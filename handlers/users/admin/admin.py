@@ -61,14 +61,18 @@ async def process_add_channel(message: Message, state: FSMContext):
     try:
         data = message.text.split("|")
         if len(data) != 3:
-            raise ValueError("❌ Noto‘g‘ri format! To‘g‘ri format: <code>nom|link|ID</code> bo‘lishi kerak")
+            raise ValueError(
+                "❌ Noto‘g‘ri format! To‘g‘ri format: <code>nom|link|ID</code> bo‘lishi kerak"
+            )
 
         name, link, channel_id = data
         name, link, channel_id = name.strip(), link.strip(), channel_id.strip()
 
         # Kanal ID raqam ekanligini tekshirish
         if not channel_id.lstrip("-").isdigit():
-            raise ValueError("❌ Kanal ID noto‘g‘ri! ID faqat sonlardan iborat bo‘lishi kerak.")
+            raise ValueError(
+                "❌ Kanal ID noto‘g‘ri! ID faqat sonlardan iborat bo‘lishi kerak."
+            )
 
         channel_id = int(channel_id)  # Int formatga o‘tkazish
 
@@ -92,7 +96,9 @@ async def delete_channel(message: Message):
         await message.answer("❌ Bazada kanallar mavjud emas!")
         return
 
-    await message.answer("🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=keyboard)
+    await message.answer(
+        "🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=keyboard
+    )
 
 
 @router.callback_query(F.data.startswith("delete_channel:"))
@@ -109,13 +115,11 @@ async def process_delete_channel(callback: CallbackQuery):
     # Yangilangan ro‘yxatni qayta chiqarish
     new_keyboard = await get_delete_channel_keyboard()
     if new_keyboard:
-        await callback.message.edit_text("🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=new_keyboard)
+        await callback.message.edit_text(
+            "🗑 O'chirmoqchi bo'lgan kanalingizni tanlang:", reply_markup=new_keyboard
+        )
     else:
         await callback.message.edit_text("✅ Barcha kanallar o‘chirildi!")
-
-
-
-
 
 
 @router.message(AdminFilter(), F.text == "📊 Statistika")
@@ -238,13 +242,12 @@ async def get_users_excel(message: Message):
         print(f"Error creating Excel file: {e}")
         await message.answer("❌ Excel fayl yaratishda xatolik yuz berdi")
 
+
 # 📌 📋 Kanallar ro‘yxati
 @router.message(AdminFilter(), F.text == "📋 Kanallar ro'yxati")
 async def get_channels(message: Message):
     buttons = await channels_button()
     await message.answer("Barcha kanallar:\n", reply_markup=buttons)
-
-
 
 
 @router.message(AdminFilter(), F.text == "⬅️ Orqaga")

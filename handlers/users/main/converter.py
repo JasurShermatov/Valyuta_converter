@@ -10,7 +10,7 @@ from keyboards.inline.currency_kb import (
     create_convert_keyboard,
     create_result_keyboard,
     get_currency_emoji,
-    SUPPORTED_CURRENCIES
+    SUPPORTED_CURRENCIES,
 )
 from utils.currency_api import currency_api
 import logging

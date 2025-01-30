@@ -37,7 +37,9 @@ class CurrencyApi:
         """CBU.uz dan valyuta kurslarini olish"""
         try:
             session = await self._get_session()
-            async with session.get(self._url, ssl=False) as response:  # ssl=False qo‘shildi
+            async with session.get(
+                self._url, ssl=False
+            ) as response:  # ssl=False qo‘shildi
                 if response.status != 200:
                     logger.error(f"CBU.uz API xatosi: {response.status}")
                     return None
@@ -72,7 +74,6 @@ class CurrencyApi:
             return None
         finally:
             await self._close_session()
-
 
     async def update_rates(self) -> bool:
         """Kurslarni yangilash va farqlarni tekshirish"""

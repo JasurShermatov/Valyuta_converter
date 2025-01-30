@@ -34,13 +34,11 @@ class CheckSubscriptionMiddleware(BaseMiddleware):
                         # Asosiy tekshiruv: kanal_ID yoki username orqali
                         if kanal_id:
                             user = await bot.get_chat_member(
-                                chat_id=int(kanal_id),
-                                user_id=user_id
+                                chat_id=int(kanal_id), user_id=user_id
                             )
                         else:
                             user = await bot.get_chat_member(
-                                chat_id=kanal_username,
-                                user_id=user_id
+                                chat_id=kanal_username, user_id=user_id
                             )
 
                         # Agar foydalanuvchi kanal a'zosi bo‘lmasa
@@ -50,15 +48,17 @@ class CheckSubscriptionMiddleware(BaseMiddleware):
                             )
 
                     except Exception as e:
-                        """ 
+                        """
                         Bu yerga bot yoki Telegram tarafidan xatolik kelib tushsa,
-                        foydalanuvchini obuna bo'lmaganlar ro'yxatiga kiritmasdan 
+                        foydalanuvchini obuna bo'lmaganlar ro'yxatiga kiritmasdan
                         o‘tkazib yuboramiz
                         """
 
                         """Muammo haqida log yozib qo'yishimiz mumkin"""
 
-                        print(f"{kanal.name} kanalini tekshirishda xatolik yuz berdi: {e}")
+                        print(
+                            f"{kanal.name} kanalini tekshirishda xatolik yuz berdi: {e}"
+                        )
 
                         """Faqat obuna_bolmagan_kanallar ga qo‘shmaymiz, shunda foydalanuvchi
                         # "o‘tkazib yuboriladi"""
@@ -67,10 +67,7 @@ class CheckSubscriptionMiddleware(BaseMiddleware):
         return obuna_bolmagan_kanallar
 
     async def __call__(
-            self,
-            handler: Callable,
-            event: Message | CallbackQuery,
-            data: Dict[str, Any]
+        self, handler: Callable, event: Message | CallbackQuery, data: Dict[str, Any]
     ) -> Any:
         user_id = event.from_user.id
         bot = data["bot"]
@@ -90,25 +87,19 @@ class CheckSubscriptionMiddleware(BaseMiddleware):
         # Agar obuna bo'lmagan kanallar mavjud bo'lsa
         if obuna_bolmagan_kanallar:
             tugmalar = await get_channel_keyboard(obuna_bolmagan_kanallar)
-            xabar_matni = (
-                f"📢 Iltimos, quyidagi {len(obuna_bolmagan_kanallar)} ta kanalga obuna bo'ling:"
-            )
+            xabar_matni = f"📢 Iltimos, quyidagi {len(obuna_bolmagan_kanallar)} ta kanalga obuna bo'ling:"
 
             try:
                 if isinstance(event, CallbackQuery):
                     await event.message.edit_text(
-                        text=xabar_matni,
-                        reply_markup=tugmalar
+                        text=xabar_matni, reply_markup=tugmalar
                     )
                     await event.answer(
                         "Botdan foydalanish uchun kanallarga obuna bo'ling!",
-                        show_alert=True
+                        show_alert=True,
                     )
                 elif isinstance(event, Message):
-                    await event.answer(
-                        text=xabar_matni,
-                        reply_markup=tugmalar
-                    )
+                    await event.answer(text=xabar_matni, reply_markup=tugmalar)
             except TelegramBadRequest as e:
                 if "message is not modified" not in str(e):
                     raise e

@@ -39,15 +39,12 @@ class DataBase:
                 subscriptions = cur.fetchall()
                 return subscriptions
 
-
     async def add_subscription(self, name, link, channel_id):
         """Yangi kanal qo'shish."""
         with await self.get_connection() as conn:
             with conn.cursor() as cur:
                 # Link yoki nom yoki channel_id bo'yicha tekshirish
-                check_query = (
-                    "SELECT id FROM subscription WHERE name = %s OR link = %s OR channel_id = %s;"
-                )
+                check_query = "SELECT id FROM subscription WHERE name = %s OR link = %s OR channel_id = %s;"
                 cur.execute(check_query, (name, link, channel_id))
                 result = cur.fetchone()
 
@@ -65,8 +62,6 @@ class DataBase:
                 conn.commit()
                 return f"✅ Kanal muvaffaqiyatli qo'shildi! Subscription name: {subscription_name[0]}"
 
-
-
     async def delete_subscription(self, subscription_id):
         """Bazadan kanalni o'chirish."""
         with await self.get_connection() as conn:
@@ -75,7 +70,9 @@ class DataBase:
                 cur.execute(query, (subscription_id,))
                 conn.commit()
 
-    async def update_subscription(self, subscription_id, name=None, link=None, channel_id=None):
+    async def update_subscription(
+        self, subscription_id, name=None, link=None, channel_id=None
+    ):
         """Bazadagi mavjud kanallarning ma'lumotlarini yangilash."""
         if not name and not link and not channel_id:
             return "❗ Yangilash uchun hech qanday ma'lumot kiritilmadi."
@@ -101,8 +98,6 @@ class DataBase:
                 cur.execute(query, params)
                 conn.commit()
                 return f"✅ Subscription ID {subscription_id} yangilandi!"
-
-
 
     async def count_users(self) -> int:
         """Jami foydalanuvchilar sonini qaytaradi"""

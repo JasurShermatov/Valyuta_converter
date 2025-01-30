@@ -124,8 +124,7 @@ async def main():
 
     # Bot va Dispatcher yaratish
     bot = Bot(
-        token=config.bot.token,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+        token=config.bot.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
     dp = Dispatcher()
 
